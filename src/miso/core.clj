@@ -14,7 +14,8 @@
                                              (->> srcs
                                                   (map #(.toString %))
                                                   (map io/file))))]
-                  (assoc acc target-file newer-inputs)))))
+                  (assoc acc target-file newer-inputs)
+                  acc))))
           {}
           target-map))
 
