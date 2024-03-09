@@ -53,7 +53,7 @@
     (run! f newer target-map)
     (keys newer)))
 
-(defn run!source->target
+(defn make-target
   "Generates an injective map of targets to sources using mapper
   and then processes it with proc!.
 
@@ -64,7 +64,7 @@
     (proc! changeset target-map)
     (keys target-map)))
 
-(defn run!source->targets
+(defn make-targets
   "coll is an array of [mapper proc!] pairs. This is used to
   generate a set of injective maps of targets to sources.  They
   are then processed with proc!
@@ -73,5 +73,5 @@
   final reduction to a single list of targets to be returned."
   [sources coll f]
   (->> coll
-       (mapv #(apply run!source->target (concat [sources] %)))
+       (mapv #(apply make-target (concat [sources] %)))
        f))
