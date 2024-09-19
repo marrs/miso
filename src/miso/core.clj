@@ -32,8 +32,10 @@
           target-map))
 
 (defn target<-source
-  "Returns a one-to-one map of target file to source file.
-  Target filename is generated from source file using f."
+  "Returns an injective map of source file to target file.
+  If f is a function, it is used to generate a target filename
+  from the source file.  Otherwise, it is considered a string
+  and returned directly."
   [f sources]
   (reduce #(assoc %1
                   (if (function? f) (f %2) f)
@@ -42,10 +44,10 @@
 
 (defn targets<-source
   "Returns a map of target files to source file.
-  Target filenames are generated using f, which generates
+  Target filenames are generated using fc, which generates
   a collection of target files from a source file"
-  [fv sources]
-  (map #(apply target<-source [% sources]) fv))
+  [fc sources]
+  (map #(apply target<-source [% sources]) fc))
 
 (defn for-changeset [target-map f]
   "Iterates over newer sources. Returns sequence of target files."
