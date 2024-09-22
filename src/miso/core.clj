@@ -1,8 +1,16 @@
 ; Run with bb --classpath ~/path/to/miso/src Makefile.clj
 (ns miso.core
-   (:require [clojure.test :refer [function?]]
-             [clojure.java.io :as io]
-             [babashka.fs :as fs]))
+  (:gen-class)
+  (:require [clojure.test :refer [function?]]
+            [clojure.java.io :as io]
+            [babashka.fs :as fs]
+            [sci.core :as sci]
+            [sci.ctx-store :as ctx]
+
+            [miso.core]
+            [miso.pass]
+            [miso.rsync]
+            ))
 
 (defn mkdirp! [f]
   (-> f
@@ -77,3 +85,16 @@
   (->> coll
        (mapv #(apply make-target (concat [sources] %)))
        f))
+
+(defn load-makefile
+  []
+  (let [f (io/file "Makefile.clj")
+        s (slurp f)
+        ctx (sci/init
+              {:namespaces {'miso.core (ns-publics 'miso.core)
+                            'miso.pass (ns-publics 'miso.pass)
+                            'miso.rsync (ns-publics 'miso.rsync)}})]
+    (sci/eval-string* ctx s)))
+
+(defn -main []
+  (prn (load-makefile)))

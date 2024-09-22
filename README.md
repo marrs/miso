@@ -6,6 +6,8 @@
 I am writing *Make It So!* out of frustration with the myriad of build
 tools that I have tried and failed to use productively.
 
+## Usage
+
 The general syntax is currently something like this.
 
 ```clojure
@@ -87,3 +89,11 @@ Then build your project in the shell with
 ```bash
 bb miso
 ```
+
+## Development
+
+Miso is built with the following tools:
+- `graalce` - `sdk install java 23-graalce`
+- `uberdeps` - https://github.com/tonsky/uberdeps
+
+Run `./package.sh` to build the `miso` executable.

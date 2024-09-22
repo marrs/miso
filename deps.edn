@@ -1,1 +1,6 @@
-{:paths ["src"]}
+{:paths ["src" "classes"]
+ :deps {org.clojure/clojure {:mvn/version "1.11.2"}
+        org.babashka/sci {:mvn/version "0.8.43"}
+        babashka/fs {:mvn/version "0.5.22"}
+        babashka/process {:mvn/version "0.5.22"}
+        }}
