@@ -3,6 +3,7 @@
   (:gen-class)
   (:require [clojure.test :refer [function?]]
             [clojure.java.io :as io]
+            [clojure.pprint]
             [babashka.fs :as fs]
             [sci.core :as sci]
             [sci.ctx-store :as ctx]
@@ -82,15 +83,19 @@
        (mapv #(apply make-target (concat [sources] %)))
        f))
 
+(defn- namespaces []
+  (reduce #(assoc %1 %2 (ns-publics %2))
+          {}  ['clojure.pprint 'miso.core 'miso.pass 'miso.rsync 'babashka.fs 'babashka.process]))
+
 (defn load-makefile
   []
   (let [f (io/file "Makefile.clj")
         s (slurp f)
-        ctx (sci/init
-              {:namespaces {'miso.core (ns-publics 'miso.core)
-                            'miso.pass (ns-publics 'miso.pass)
-                            'miso.rsync (ns-publics 'miso.rsync)}})]
-    (sci/eval-string* ctx s)))
+        ctx (sci/init {:namespaces (namespaces)})]
+    (try
+      (sci/eval-string* ctx s)
+      (catch clojure.lang.ExceptionInfo e
+        (clojure.pprint/pprint (-> e ex-data))))))
 
 (defn -main []
   (prn (load-makefile)))
