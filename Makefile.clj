@@ -1,4 +1,4 @@
-(require '[miso.core :refer [make-target]])
+(require '[miso.core :refer [make]])
 (require '[miso.pass :refer [password]])
 (require '[miso.rsync :refer [rsync remote-address]])
 (require '[babashka.fs :as fs])
@@ -31,21 +31,21 @@
 (defn- compile-miso-core
   [sources]
   (let [target-dir "classes/"
-        proc! #(shell "clj -M -e"
+        proc #(shell "clj -M -e"
                       "(compile 'miso.core)")
         ]
     (if (empty? (fs/list-dir target-dir))
-      (proc!)
+      (proc)
       (let [newest-target (last-modified-file (fs/glob target-dir "**"))]
         (when (seq (fs/modified-since newest-target sources))
-          (proc!))))
+          (proc))))
     (fs/glob target-dir "**")))
 
 (-> (fs/glob "src/" "**")
 
     compile-miso-core
 
-    (make-target
+    (make
       "target/miso.jar"
       (fn [_ _]
         (shell "clj -Sdeps '{:aliases {:uberjar {:replace-deps {uberdeps/uberdeps {:mvn/version \"1.4.0\"}} :replace-paths []}}}}'"
@@ -55,7 +55,7 @@
                "--main-class"
                "miso.core")))
 
-    (make-target
+    (make
       "target/miso"
       (fn [modified _]
         (shell
