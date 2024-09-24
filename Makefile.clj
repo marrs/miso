@@ -47,7 +47,7 @@
 
     (make
       "target/miso.jar"
-      (fn [_ _]
+      (fn []
         (shell "clj -Sdeps '{:aliases {:uberjar {:replace-deps {uberdeps/uberdeps {:mvn/version \"1.4.0\"}} :replace-paths []}}}}'"
                "-M:uberjar"
                "-m"
@@ -57,7 +57,7 @@
 
     (make
       "target/miso"
-      (fn [modified _]
+      (fn [modified]
         (shell
           (clojure.string/join " "
                                ["native-image"

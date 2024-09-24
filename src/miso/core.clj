@@ -13,6 +13,9 @@
             [miso.rsync]
             ))
 
+(defn- n-args [f]
+  (-> f class .getDeclaredMethods first .getParameterTypes alength))
+
 (defn mkdirp! [f]
   (-> f
       fs/path
@@ -68,7 +71,10 @@
   (let [target-map (target<-source mapper sources)
         changeset (filter-changeset target-map)]
     (when (seq changeset)
-      (proc changeset target-map))
+      (case (n-args proc)
+        0 (proc)
+        1 (proc changeset)
+        :else (proc changeset target-map)))
     (keys target-map)))
 
 (defn make-multi
