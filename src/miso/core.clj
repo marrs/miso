@@ -18,8 +18,8 @@
       fs/create-dirs))
 
 (defn filter-changeset
-  "Returns a map of targets from sources for those
-  sources that are newer than their target."
+  "Returns a map of target file to sources files for
+  those sources that are newer than their target."
   [target-map]
   (reduce (fn [acc [target src]]
             (let [target-file (io/file target)
@@ -40,38 +40,34 @@
           target-map))
 
 (defn target<-source
-  "Returns an injective map of source file to target file.
+  "Returns a map of target file to source files.
   If f is a function, it is used to generate a target filename
   from the source file.  Otherwise, it is considered a string
   and returned directly."
   [f sources]
-  (reduce #(assoc %1
-                  (if (function? f) (f %2) f)
-                  %2)
+  (reduce (fn [acc src]
+            (let [target (if (function? f) (f src) f)]
+              (assoc acc
+                     target
+                     (conj (get acc target []) src))))
           {} sources))
-
-(defn targets<-source
-  "Returns a map of target files to source file.
-  Target filenames are generated using fc, which generates
-  a collection of target files from a source file"
-  [fc sources]
-  (map #(apply target<-source [% sources]) fc))
 
 (defn for-changeset [target-map f]
   "Iterates over newer sources. Returns sequence of target files."
-  (let [newer (filter-changeset target-map)]
-    (run! f newer target-map)
-    (keys newer)))
+  (let [changeset (filter-changeset target-map)]
+    (run! f changeset target-map)
+    (keys changeset)))
 
 (defn make-target
   "Generates an injective map of targets to sources using mapper
   and then processes it with proc!.
 
-  Returns the complete list of target files generated"
+  Returns the complete list of target files expected."
   [sources mapper proc!]
   (let [target-map (target<-source mapper sources)
         changeset (filter-changeset target-map)]
-    (proc! changeset target-map)
+    (when (seq changeset)
+      (proc! changeset target-map))
     (keys target-map)))
 
 (defn make-targets
