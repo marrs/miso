@@ -59,28 +59,28 @@
     (run! f changeset target-map)
     (keys changeset)))
 
-(defn make-target
-  "Generates an injective map of targets to sources using mapper
-  and then processes it with proc!.
+(defn make
+  "Generates a map of targets to sources using mapper
+  and then processes it with proc.
 
   Returns the complete list of target files expected."
-  [sources mapper proc!]
+  [sources mapper proc]
   (let [target-map (target<-source mapper sources)
         changeset (filter-changeset target-map)]
     (when (seq changeset)
-      (proc! changeset target-map))
+      (proc changeset target-map))
     (keys target-map)))
 
-(defn make-targets
-  "coll is an array of [mapper proc!] pairs. This is used to
-  generate a set of injective maps of targets to sources.  They
-  are then processed with proc!
+(defn make-multi
+  "coll is an array of [mapper proc] pairs. This is used to
+  generate a set of maps of targets to sources.  They are then
+  processed with f.
   
   A list of targets, grouped by mapper, is provided to f, for
   final reduction to a single list of targets to be returned."
   [sources coll f]
   (->> coll
-       (mapv #(apply make-target (concat [sources] %)))
+       (mapv #(apply make (concat [sources] %)))
        f))
 
 (defn- namespaces []
