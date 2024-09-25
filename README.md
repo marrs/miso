@@ -18,10 +18,6 @@ The general syntax is currently something like this.
     (comment "Perform your operations here")))
 ```
 
-> [!NOTE]
-> Not all features currently work with GraalVM.  For now, run with
-> `clj -M -m miso.core"`.
-
 `make` behaves in the following way:
 - Provide it with:
   1. a list of source files;
@@ -96,10 +92,20 @@ Then build your project in the shell with
 bb miso
 ```
 
+> [!NOTE]
+> *Circa 25th Sep 2024*
+> Not all features currently work with GraalVM.
+> For now, run with `clj -M -m miso.core`.
+
+
 ## Development
 
-Miso is built with the following tools:
+To get me started, Miso was written as a library to be run in `bb`, but I've
+been experimenting with compiling it as a binary directly.
+
+To do this, Miso is built with the following tools:
 - `graalce` - `sdk install java 23-graalce`
 - `uberdeps` - https://github.com/tonsky/uberdeps
 
-Run `./package.sh` to build the `miso` executable.
+It can then be built using itself by running `source aliases`, then running
+`compile`.
