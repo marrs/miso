@@ -7,12 +7,15 @@
             [babashka.fs :as fs]
             [sci.core :as sci]
             [sci.ctx-store :as ctx]
+            [sci.impl.interpreter :as interp]
 
             [miso.core]
             [miso.pass]
             [miso.rsync]
             ))
 
+; FIXME: This won't work after compilation with graal
+; (-> f class .getDeclaredMethods) will return an empty list.
 (defn- n-args [f]
   (-> f class .getDeclaredMethods first .getParameterTypes alength))
 
@@ -93,15 +96,31 @@
   (reduce #(assoc %1 %2 (ns-publics %2))
           {}  ['clojure.pprint 'miso.core 'miso.pass 'miso.rsync 'babashka.fs 'babashka.process]))
 
+; The code within this symbol is executed within the context of the Makefile.
+; Any publicly defined function will be run if its name matches the
+; first arg passed from the CLI. 
+(def run-command
+  '(when-let [fun (->> __args__ first symbol (get (ns-publics *ns*)))]
+     (apply fun (rest __args__))))
+
 (defn load-makefile
-  []
+  [& args]
   (let [f (io/file "Makefile.clj")
         s (slurp f)
-        ctx (sci/init {:namespaces (namespaces)})]
+        ctx-args (sci/new-var 'args args {:dynamic true :private true})
+        ctx (sci/init {:namespaces (assoc (namespaces) 'user {'__args__ ctx-args})})]
     (try
-      (sci/eval-string* ctx s)
+      ; {:classes {:allow :all}} was added in the hope that it would allow reflection
+      ; of the lambdas passed to make et al, but it didn't work.  It doesn't look like
+      ; Babashka or GraalVM support it. Keeping in until confirmed.
+      ; If removed, we should go back to using `sci.core/eval-string*`.
+      (sci/binding [sci/out *out*, sci/err *err*]
+        (interp/eval-string* ctx
+                             (str s "\n" run-command)
+                             {:classes {:allow :all} :sci.impl/eval-string+ true}))
+
       (catch clojure.lang.ExceptionInfo e
         (clojure.pprint/pprint (-> e ex-data))))))
 
-(defn -main []
-  (prn (load-makefile)))
+(defn -main [& args]
+  (apply load-makefile args))

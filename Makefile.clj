@@ -3,12 +3,11 @@
 (require '[miso.rsync :refer [rsync remote-address]])
 (require '[babashka.fs :as fs])
 (require '[babashka.process :refer [shell]])
-(require '[clojure.pprint :refer [pprint]]) ; TODO: Work out why I can't use `prn`
 
 (defn greet
   "Say 'hello' to the user."
-  []
-  "Hello")
+  ([] (greet nil))
+  ([name] (println "Hello" name)))
 
 (defn- newer?
   "Returns true if f1 is newer than f2."
@@ -47,15 +46,14 @@
 
     (make
       "target/miso.jar"
-      (fn []
-        (shell "clj -Sdeps '{:aliases {:uberjar {:replace-deps {uberdeps/uberdeps {:mvn/version \"1.4.0\"}} :replace-paths []}}}}'"
+      #(shell "clj -Sdeps '{:aliases {:uberjar {:replace-deps {uberdeps/uberdeps {:mvn/version \"1.4.0\"}} :replace-paths []}}}}'"
                "-M:uberjar"
                "-m"
                "uberdeps.uberjar"
                "--main-class"
-               "miso.core")))
+               "miso.core"))
 
-    (make
+    #_(make
       "target/miso"
       (fn [modified]
         (shell

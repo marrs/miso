@@ -1,1 +1,1 @@
-alias compile="clj -M -m miso.core"
+alias miso="clj -M -m miso.core"

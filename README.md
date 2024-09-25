@@ -78,6 +78,19 @@ files:
                          deref)]))))
 ```
 
+It is also possible to define a rule to be run from the commandline by defining
+a function with the rule as its name.
+
+```
+(defn clean [] (shell "rm -rf" (fs/glob "target" "**")))
+```
+The above function defines a rule that can be run with `clj -M -m miso.core clean`.
+
+> [!NOTE]
+> *Circa 25th Sep 2024*
+> Currently, any rules that run by default still get run.
+> This needs to be fixed.
+
 Put your rules in a file called `Makefile.clj` and run the file using Babashaka.
 An example `bb.edn` is as follows:
 ```clojure
