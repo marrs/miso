@@ -100,15 +100,32 @@
 ; Any publicly defined function will be run if its name matches the
 ; first arg passed from the CLI. 
 (def run-command
-  '(when-let [fun (->> __args__ first symbol (get (ns-publics *ns*)))]
-     (apply fun (rest __args__))))
+  '(if-let [action (-> __args__ first)]
+     (if-let [fun (get (ns-publics *ns*) (symbol action))]
+       (apply fun (rest __args__))
+       (throw (ex-info "Action not defined in Makefile." {:action action})))
+     (when-not (nil? @__build__)
+       (@__build__))))
 
+(defmacro ->
+  "Define what operations are to be run by default. It behaves like a standard threading
+  macro except that running of its expression is deferred until after command line args
+  have been evaluated."
+  [& exprs]
+  `(reset! user/__build__ (fn [] ~(cons '-> exprs))))
+
+; The following vars are defined for the context the Makefile is evaluated under:
+; - __args__ (the command line args that were passed to miso)
+; - __build__ (the function to be run by default - created by miso.core/->)
 (defn load-makefile
   [& args]
   (let [f (io/file "Makefile.clj")
         s (slurp f)
         ctx-args (sci/new-var 'args args {:dynamic true :private true})
-        ctx (sci/init {:namespaces (assoc (namespaces) 'user {'__args__ ctx-args})})]
+        ctx (sci/init {:namespaces (assoc (namespaces)
+                                          'user
+                                          {'__args__ ctx-args
+                                           '__build__ (atom (fn []))})})]
     (try
       ; {:classes {:allow :all}} was added in the hope that it would allow reflection
       ; of the lambdas passed to make et al, but it didn't work.  It doesn't look like
@@ -120,7 +137,7 @@
                              {:classes {:allow :all} :sci.impl/eval-string+ true}))
 
       (catch clojure.lang.ExceptionInfo e
-        (clojure.pprint/pprint (-> e ex-data))))))
+        (clojure.pprint/pprint (clojure.core/-> e ex-data))))))
 
 (defn -main [& args]
   (apply load-makefile args))

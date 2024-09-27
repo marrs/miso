@@ -8,7 +8,10 @@ tools that I have tried and failed to use productively.
 
 ## Usage
 
-The general syntax is currently something like this.
+Rules for building your project are put in a file called `Makefile.clj`.
+Run miso from the same directory as the file for it to be found.
+
+The general syntax for rules are currently something like this.
 
 ```clojure
 (make
@@ -30,29 +33,51 @@ The general syntax is currently something like this.
      - 2nd argument is all of the source files.
 - It returns a list containing the target file or files.
   - This list can then be used as the source for further make rules
-    using the chain operator `->`.
+    using the threading operator `->`.
+
+> [!NOTE]
+> It is preferable to use `miso.core/->` over `->`.
+> It behaves the same way except it will not execute its expression if
+> miso was called with arguments.
+
+You can define actions to be run explicitly from the command line by defining
+them as named functions.
+
+For instance, if you want to define an action to clean up your project
+directory, you could add the following to your Makefile.clj
+```
+(defn clean [] (shell "bash -c 'rm *.o a.out'"))
+```
+The action will be performed when you run `clj -M -m miso.core clean`.
 
 A simple `Makefile.clj` for compiling a C programme called `edit` may
 look something like the following (example taken from [gnu.org](https://www.gnu.org/software/make/manual/html_node/Simple-Makefile.html)):
 ```clojure
-(-> (concat (make ["main.c" "defs.h"] "main.o"
-              #(shell "cc -c main.c"))
-            (make ["kbd.c" "defs.h" "command.h"] "kbd.o"
-              #(shell "cc -c kbd.c"))
-            (make ["command.c" "defs.h" "command.h"] "command.o"
-              #(shell "cc -c command.c"))
-            (make ["display.c" "defs.h" "buffer.h"] "display.o"
-              #(shell "cc -c display.c"))
-            (make ["insert.c" "defs.h" "buffer.h"] "insert.o"
-              #(shell "cc -c insert.c"))
-            (make ["search.c" "defs.h" "buffer.h"] "search.o"
-              #(shell "cc -c search.c"))
-            (make ["files.c" "defs.h" "buffer.h" "command.h"] "files.o"
-              #(shell "cc -c files.c"))
-            (make ["utils.c" "defs.h"] "utils.o"
-              #(shell "cc -c utils.c")))
+(require '[miso.core :as miso :refer [make]]
+(require '[babashka.process :refer [shell]])
+
+(miso/->
+  (concat (make ["main.c" "defs.h"] "main.o"
+            #(shell "cc -c main.c"))
+          (make ["kbd.c" "defs.h" "command.h"] "kbd.o"
+            #(shell "cc -c kbd.c"))
+          (make ["command.c" "defs.h" "command.h"] "command.o"
+            #(shell "cc -c command.c"))
+          (make ["display.c" "defs.h" "buffer.h"] "display.o"
+            #(shell "cc -c display.c"))
+          (make ["insert.c" "defs.h" "buffer.h"] "insert.o"
+            #(shell "cc -c insert.c"))
+          (make ["search.c" "defs.h" "buffer.h"] "search.o"
+            #(shell "cc -c search.c"))
+          (make ["files.c" "defs.h" "buffer.h" "command.h"] "files.o"
+            #(shell "cc -c files.c"))
+          (make ["utils.c" "defs.h"] "utils.o"
+            #(shell "cc -c utils.c")))
     (make "edit"
       #(apply shell (concat ["cc -o edit"] %2)))
+
+(defn clean []
+  (shell "bash -c 'rm *.o edit'"))
 ```
 
 This example `Makefile.clj` generates a static website from a list of html
@@ -78,19 +103,6 @@ files:
                          deref)]))))
 ```
 
-It is also possible to define a rule to be run from the commandline by defining
-a function with the rule as its name.
-
-```
-(defn clean [] (shell "rm -rf" (fs/glob "target" "**")))
-```
-The above function defines a rule that can be run with `clj -M -m miso.core clean`.
-
-> [!NOTE]
-> *Circa 25th Sep 2024*
-> Currently, any rules that run by default still get run.
-> This needs to be fixed.
-
 Put your rules in a file called `Makefile.clj` and run the file using Babashaka.
 An example `bb.edn` is as follows:
 ```clojure
@@ -109,7 +121,6 @@ bb miso
 > *Circa 25th Sep 2024*
 > Not all features currently work with GraalVM.
 > For now, run with `clj -M -m miso.core`.
-
 
 ## Development
 

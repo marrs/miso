@@ -1,4 +1,4 @@
-(require '[miso.core :refer [make]])
+(require '[miso.core :as miso :refer [make]])
 (require '[miso.pass :refer [password]])
 (require '[miso.rsync :refer [rsync remote-address]])
 (require '[babashka.fs :as fs])
@@ -7,7 +7,9 @@
 (defn greet
   "Say 'hello' to the user."
   ([] (greet nil))
-  ([name] (println "Hello" name)))
+  ([name] (if name
+            (println (str "Hello " name "."))
+            (println "Hello."))))
 
 (defn- newer?
   "Returns true if f1 is newer than f2."
@@ -40,20 +42,21 @@
           (proc))))
     (fs/glob target-dir "**")))
 
-(-> (fs/glob "src/" "**")
+(miso/->
+  (fs/glob "src/" "**")
 
-    compile-miso-core
+  compile-miso-core
 
-    (make
-      "target/miso.jar"
-      #(shell "clj -Sdeps '{:aliases {:uberjar {:replace-deps {uberdeps/uberdeps {:mvn/version \"1.4.0\"}} :replace-paths []}}}}'"
-               "-M:uberjar"
-               "-m"
-               "uberdeps.uberjar"
-               "--main-class"
-               "miso.core"))
+  (make
+    "target/miso.jar"
+    #(shell "clj -Sdeps '{:aliases {:uberjar {:replace-deps {uberdeps/uberdeps {:mvn/version \"1.4.0\"}} :replace-paths []}}}}'"
+            "-M:uberjar"
+            "-m"
+            "uberdeps.uberjar"
+            "--main-class"
+            "miso.core"))
 
-    #_(make
+  #_(make
       "target/miso"
       (fn [modified]
         (shell
@@ -64,5 +67,4 @@
                                 "--no-fallback"
                                 "--initialize-at-build-time=\"\""
                                 "target/miso"]
-                               ))))
-    )
+                               )))))
