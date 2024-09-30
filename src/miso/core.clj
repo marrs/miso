@@ -108,14 +108,30 @@
   (reduce #(assoc %1 %2 (ns-publics %2))
           {}  ['clojure.pprint 'miso.core 'miso.pass 'miso.rsync 'babashka.fs 'babashka.process]))
 
+(defn print-help
+  ([cmd-map]
+   (print-help cmd-map nil))
+  ([cmd-map cmd]
+   (if (nil? cmd)
+     (do (println "Available commands:")
+         (doseq [[ky vl] cmd-map]
+           (print-help cmd-map ky)))
+     (when (not (re-matches #"^__.*__$" (str cmd)))
+       (println "  " (str cmd) "\t" (-> (get cmd-map (symbol cmd)) meta :doc))))))
+
 ; The code within this symbol is executed within the context of the Makefile.
 ; Any publicly defined function will be run if its name matches the
 ; first arg passed from the CLI. 
 (def run-command
-  '(if-let [action (-> __args__ first)]
-     (if-let [fun (get (ns-publics *ns*) (symbol action))]
-       (apply fun (rest __args__))
-       (throw (ex-info "Action not defined in Makefile." {:action action})))
+  '(if-let [action (first __args__)]
+     (let [public-members (ns-publics *ns*)]
+       (if-let [fun (get public-members (symbol action))]
+         (apply fun (rest __args__))
+         (if (= action "help")
+           (if-let [cmd (second __args__)]
+             (miso.core/print-help public-members cmd)
+             (miso.core/print-help public-members))
+           (throw (ex-info "Action not defined in Makefile." {:action action})))))
      (when-not (nil? @__build__)
        (@__build__))))
 
