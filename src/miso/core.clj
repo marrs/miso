@@ -116,44 +116,43 @@
      (do (println "Available commands:")
          (doseq [[ky vl] cmd-map]
            (print-help cmd-map ky)))
-     (when (not (re-matches #"^__.*__$" (str cmd)))
-       (println "  " (str cmd) "\t" (-> (get cmd-map (symbol cmd)) meta :doc))))))
+     (println "  " (str cmd) "\t" (-> (get cmd-map (symbol cmd)) meta :doc)))))
 
 ; The code within this symbol is executed within the context of the Makefile.
 ; Any publicly defined function will be run if its name matches the
 ; first arg passed from the CLI. 
 (def run-command
-  '(if-let [action (first __args__)]
+  '(if-let [action (first miso.mfstate/args)]
      (let [public-members (ns-publics *ns*)]
        (if-let [fun (get public-members (symbol action))]
-         (apply fun (rest __args__))
+         (apply fun (rest miso.mfstate/args))
          (if (= action "help")
-           (if-let [cmd (second __args__)]
+           (if-let [cmd (second miso.mfstate/args)]
              (miso.core/print-help public-members cmd)
              (miso.core/print-help public-members))
            (throw (ex-info "Action not defined in Makefile." {:action action})))))
-     (when-not (nil? @__build__)
-       (@__build__))))
+     (when-not (nil? @miso.mfstate/build)
+       (@miso.mfstate/build))))
 
 (defmacro ->
   "Define what operations are to be run by default. It behaves like a standard threading
   macro except that running of its expression is deferred until after command line args
   have been evaluated."
   [& exprs]
-  `(reset! user/__build__ (fn [] ~(cons '-> exprs))))
+  `(reset! miso.mfstate/build (fn [] ~(cons '-> exprs))))
 
 ; The following vars are defined for the context the Makefile is evaluated under:
-; - __args__ (the command line args that were passed to miso)
-; - __build__ (the function to be run by default - created by miso.core/->)
+; - miso.mfstate/args (the command line args that were passed to miso)
+; - miso.mfstate/build (the function to be run by default - created by miso.core/->)
 (defn load-makefile
   [& args]
   (let [f (io/file "Makefile.clj")
         s (slurp f)
         ctx-args (sci/new-var 'args args {:dynamic true :private true})
         ctx (sci/init {:namespaces (assoc (namespaces)
-                                          'user
-                                          {'__args__ ctx-args
-                                           '__build__ (atom (fn []))})})]
+                                          'miso.mfstate
+                                          {'args ctx-args
+                                           'build (atom (fn []))})})]
     (try
       ; {:classes {:allow :all}} was added in the hope that it would allow reflection
       ; of the lambdas passed to make et al, but it didn't work.  It doesn't look like
