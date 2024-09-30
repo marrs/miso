@@ -65,6 +65,17 @@
     (run! f changeset target-map)
     (keys changeset)))
 
+(defmacro handle-changeset
+  "Update modified time of any sources that failed to build so that they
+   will be included in future builds."
+  [changeset expr]
+  `(try ~expr
+        (catch Exception e#
+          (println "Negative, Captain! Command exited with error.")
+          (doseq [[dst# sources#] ~changeset]
+            (doseq [src# sources#]
+              (fs/set-last-modified-time src# (.now java.time.Instant)))))))
+
 (defn make
   "Generates a map of targets to sources using mapper
   and then processes it with proc.
@@ -74,10 +85,11 @@
   (let [target-map (target<-source mapper sources)
         changeset (filter-changeset target-map)]
     (when (seq changeset)
-      (case (n-args proc)
-        0 (proc)
-        1 (proc changeset)
-        :else (proc changeset target-map)))
+      (handle-changeset changeset
+        (case (n-args proc)
+          0 (proc)
+          1 (proc changeset)
+          :else (proc changeset target-map))))
     (keys target-map)))
 
 (defn make-multi
